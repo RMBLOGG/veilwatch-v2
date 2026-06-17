@@ -1,4 +1,4 @@
-import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_carousel_widget/flutter_carousel_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,14 +102,13 @@ class _HeroCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-    return CarouselSlider.builder(
+    return FlutterCarousel.builder(
       itemCount: items.length,
       itemBuilder: (context, index, _) => _HeroItem(anime: items[index]),
-      options: CarouselOptions(
+      options: FlutterCarouselOptions(
         height: 220,
         viewportFraction: 0.88,
         enlargeCenterPage: true,
-        enlargeFactor: 0.12,
         autoPlay: true,
         autoPlayInterval: const Duration(seconds: 4),
       ),

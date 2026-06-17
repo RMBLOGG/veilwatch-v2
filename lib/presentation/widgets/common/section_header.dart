@@ -48,7 +48,7 @@ class VeilErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 
-  const ErrorWidget({super.key, required this.message, this.onRetry});
+  const VeilErrorWidget({super.key, required this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -56,23 +56,12 @@ class VeilErrorWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.wifi_off_rounded,
-            color: VeilwatchColors.textMuted,
-            size: 48,
-          ),
+          const Icon(Icons.wifi_off_rounded, color: VeilwatchColors.textMuted, size: 48),
           const SizedBox(height: 12),
-          Text(
-            message,
-            style: const TextStyle(color: VeilwatchColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
+          Text(message, style: const TextStyle(color: VeilwatchColors.textSecondary), textAlign: TextAlign.center),
           if (onRetry != null) ...[
             const SizedBox(height: 16),
-            TextButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ],
       ),
