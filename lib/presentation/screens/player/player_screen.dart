@@ -1,8 +1,9 @@
-import 'package:better_player/better_player.dart';
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/anime_model.dart';
@@ -28,9 +29,11 @@ class PlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _PlayerScreenState extends ConsumerState<PlayerScreen> {
-  BetterPlayerController? _controller;
-  bool _initialized = false;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
   String? _currentUrl;
+  bool _initialized = false;
+  String? _error;
 
   @override
   void initState() {
@@ -44,54 +47,58 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
 
-  void _initPlayer(String url) {
+  Future<void> _initPlayer(String url) async {
     if (_currentUrl == url) return;
     _currentUrl = url;
-    _controller?.dispose();
 
-    final isM3u8 = url.contains('.m3u8');
-    final dataSource = BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      url,
-      videoFormat: isM3u8 ? BetterPlayerVideoFormat.hls : null,
-    );
+    _chewieController?.dispose();
+    _videoController?.dispose();
 
-    _controller = BetterPlayerController(
-      BetterPlayerConfiguration(
+    setState(() {
+      _initialized = false;
+      _error = null;
+    });
+
+    try {
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(url));
+      await _videoController!.initialize();
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController!,
         autoPlay: true,
+        looping: false,
         aspectRatio: 16 / 9,
-        allowedScreenSleep: false,
-        controlsConfiguration: const BetterPlayerControlsConfiguration(
-          controlBarColor: Colors.black54,
-          iconsColor: Colors.white,
-          progressBarPlayedColor: VeilwatchColors.accent,
-          progressBarHandleColor: VeilwatchColors.accent,
-          progressBarBackgroundColor: Colors.white24,
-          loadingColor: VeilwatchColors.accent,
-          enableSkips: true,
-          forwardSkipTimeInMilliseconds: 10000,
-          backwardSkipTimeInMilliseconds: 10000,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: VeilwatchColors.accent,
+          handleColor: VeilwatchColors.accent,
+          backgroundColor: Colors.white24,
+          bufferedColor: Colors.white38,
         ),
-        eventListener: (event) {
-          if (event.betterPlayerEventType == BetterPlayerEventType.progress) {
-            _saveProgress();
-          }
-        },
-      ),
-      betterPlayerDataSource: dataSource,
-    );
-    setState(() => _initialized = true);
+      );
+
+      if (mounted) setState(() => _initialized = true);
+
+      _videoController!.addListener(() {
+        if (_videoController!.value.isPlaying) _saveProgress();
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    }
   }
 
   void _saveProgress() {
-    if (_controller == null) return;
-    final pos = _controller!.videoPlayerController?.value.position.inSeconds ?? 0;
-    final dur = _controller!.videoPlayerController?.value.duration?.inSeconds ?? 0;
+    if (_videoController == null) return;
+    final pos = _videoController!.value.position.inSeconds;
+    final dur = _videoController!.value.duration.inSeconds;
     if (dur == 0) return;
 
     ref.read(watchHistoryProvider.notifier).saveProgress(WatchHistory(
@@ -114,24 +121,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          // Player
+          // Player area
           AspectRatio(
             aspectRatio: 16 / 9,
             child: episodeAsync.when(
               loading: () => const Center(child: CircularProgressIndicator(color: VeilwatchColors.accent)),
-              error: (e, _) => Center(
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.error_outline, color: Colors.white54, size: 40),
-                  const SizedBox(height: 8),
-                  Text(e.toString(), style: const TextStyle(color: Colors.white54), textAlign: TextAlign.center),
-                ]),
-              ),
+              error: (e, _) => _ErrorView(message: e.toString()),
               data: (episode) {
                 if (episode.streams.isEmpty) {
-                  return const Center(child: Text('Tidak ada stream tersedia', style: TextStyle(color: Colors.white54)));
+                  return const _ErrorView(message: 'Tidak ada stream tersedia');
                 }
-                if (!_initialized) {
-                  // Auto-pick best quality
+
+                // Auto init dengan stream pertama
+                if (!_initialized && _error == null && _currentUrl == null) {
                   final best = episode.streams.firstWhere(
                     (s) => s.quality == '720p',
                     orElse: () => episode.streams.first,
@@ -139,7 +141,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   WidgetsBinding.instance.addPostFrameCallback((_) => _initPlayer(best.url));
                   return const Center(child: CircularProgressIndicator(color: VeilwatchColors.accent));
                 }
-                return BetterPlayer(controller: _controller!);
+
+                if (_error != null) return _ErrorView(message: _error!);
+
+                if (!_initialized) {
+                  return const Center(child: CircularProgressIndicator(color: VeilwatchColors.accent));
+                }
+
+                return Chewie(controller: _chewieController!);
               },
             ),
           ),
@@ -148,65 +157,86 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           Expanded(
             child: Container(
               color: VeilwatchColors.bg,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => context.pop(),
-                          child: const Icon(Icons.arrow_back_ios_new_rounded, color: VeilwatchColors.textPrimary, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(widget.animeTitle, style: const TextStyle(color: VeilwatchColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text(widget.episodeName, style: const TextStyle(color: VeilwatchColors.textSecondary, fontSize: 13)),
-                          ]),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Quality selector
-                  episodeAsync.whenData((episode) {
-                    if (episode.streams.length <= 1) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      child: Row(
                         children: [
-                          const Text('Kualitas', style: TextStyle(color: VeilwatchColors.textSecondary, fontSize: 13)),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: episode.streams.map((s) => GestureDetector(
-                              onTap: () => _initPlayer(s.url),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                decoration: BoxDecoration(
-                                  color: _currentUrl == s.url ? VeilwatchColors.accent : VeilwatchColors.surfaceElevated,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(s.name, style: TextStyle(
-                                  color: _currentUrl == s.url ? Colors.white : VeilwatchColors.textPrimary,
-                                  fontSize: 13, fontWeight: FontWeight.w600,
-                                )),
-                              ),
-                            )).toList(),
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: const Icon(Icons.arrow_back_ios_new_rounded, color: VeilwatchColors.textPrimary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(widget.animeTitle, style: const TextStyle(color: VeilwatchColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(widget.episodeName, style: const TextStyle(color: VeilwatchColors.textSecondary, fontSize: 13)),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  }).value ?? const SizedBox.shrink(),
-                ],
+                    ),
+
+                    // Quality selector
+                    episodeAsync.whenData((episode) {
+                      if (episode.streams.length <= 1) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Kualitas', style: TextStyle(color: VeilwatchColors.textSecondary, fontSize: 13)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: episode.streams.map((s) => GestureDetector(
+                                onTap: () => _initPlayer(s.url),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: _currentUrl == s.url ? VeilwatchColors.accent : VeilwatchColors.surfaceElevated,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(s.name, style: TextStyle(
+                                    color: _currentUrl == s.url ? Colors.white : VeilwatchColors.textPrimary,
+                                    fontSize: 13, fontWeight: FontWeight.w600,
+                                  )),
+                                ),
+                              )).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).value ?? const SizedBox.shrink(),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  const _ErrorView({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.error_outline, color: Colors.white54, size: 40),
+        const SizedBox(height: 8),
+        Text(message, style: const TextStyle(color: Colors.white54), textAlign: TextAlign.center),
+      ]),
     );
   }
 }

@@ -47,7 +47,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
               indicatorWeight: 2,
               labelColor: VeilwatchColors.accent,
               unselectedLabelColor: VeilwatchColors.textMuted,
-              labelStyle: const TextStyle(fontFamily: 'Urbanist', fontWeight: FontWeight.w600, fontSize: 14),
+              labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               tabs: const [Tab(text: 'Tersimpan'), Tab(text: 'Riwayat')],
             ),
             Expanded(

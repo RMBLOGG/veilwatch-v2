@@ -8,20 +8,15 @@ import 'data/services/local_storage_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait by default
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
 
-  // Status bar style
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    navigationBarColor: VeilwatchColors.surface,
-    navigationBarIconBrightness: Brightness.light,
   ));
 
-  // Init local storage
   await LocalStorageService().init();
 
   runApp(const ProviderScope(child: VeilwatchApp()));
