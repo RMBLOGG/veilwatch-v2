@@ -10,30 +10,17 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Navigation
   go_router: ^13.2.0
-
-  # State Management
   flutter_riverpod: ^2.5.1
-
-  # HTTP
-  dio: ^5.4.3
-
-  # Video Player - pakai chewie+video_player, lebih stabil
+  dio: ^5.4.3+1
   video_player: ^2.8.6
   chewie: ^1.7.5
-
-  # UI
-  iconsax: ^0.0.8
+  carousel_slider: ^4.2.1
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
-  carousel_slider: ^4.2.1
-
-  # Storage
+  iconsax: ^0.0.8
   shared_preferences: ^2.2.3
-
-  # Utils
-  connectivity_plus: ^6.0.3
+  package_info_plus: ^8.1.2
 
 dev_dependencies:
   flutter_test:
@@ -42,8 +29,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/
   fonts:
     - family: Urbanist
       fonts:

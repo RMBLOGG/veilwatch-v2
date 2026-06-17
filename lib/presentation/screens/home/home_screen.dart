@@ -28,8 +28,8 @@ class HomeScreen extends ConsumerWidget {
             backgroundColor: VeilwatchColors.bg,
             title: RichText(
               text: const TextSpan(children: [
-                TextSpan(text: 'Veil', style: TextStyle(fontFamily: 'Urbanist', fontSize: 24, fontWeight: FontWeight.w800, color: VeilwatchColors.textPrimary)),
-                TextSpan(text: 'watch', style: TextStyle(fontFamily: 'Urbanist', fontSize: 24, fontWeight: FontWeight.w800, color: VeilwatchColors.accent)),
+                TextSpan(text: 'Veil', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: VeilwatchColors.textPrimary)),
+                TextSpan(text: 'watch', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: VeilwatchColors.accent)),
               ]),
             ),
           ),

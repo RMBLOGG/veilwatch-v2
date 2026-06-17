@@ -4,10 +4,21 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader("UTF-8") { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "1"
+def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0"
+
 android {
-    namespace "com.dayynime.veilwatch"
-    compileSdk 34
-    ndkVersion "25.1.8937393"
+    namespace "com.example.veilwatch"
+    compileSdkVersion flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -15,26 +26,28 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = "1.8"
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
     }
 
     defaultConfig {
-        applicationId "com.dayynime.veilwatch"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        applicationId "com.example.veilwatch"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
         }
     }
 }
 
 flutter {
-    source '../..'
+    source "../.."
 }

@@ -44,7 +44,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-class ErrorWidget extends StatelessWidget {
+class VeilErrorWidget extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
 

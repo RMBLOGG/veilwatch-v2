@@ -38,13 +38,13 @@ class VeilwatchTheme {
           surface: VeilwatchColors.surface,
           error: VeilwatchColors.error,
         ),
-        fontFamily: 'Urbanist',
+        // ,
         appBarTheme: const AppBarTheme(
           backgroundColor: VeilwatchColors.bg,
           elevation: 0,
           scrolledUnderElevation: 0,
           titleTextStyle: TextStyle(
-            fontFamily: 'Urbanist',
+            // ,
             color: VeilwatchColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w700,

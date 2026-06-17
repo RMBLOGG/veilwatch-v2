@@ -126,7 +126,7 @@ class _NavItem extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Urbanist',
+                ,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: isActive ? VeilwatchColors.accent : VeilwatchColors.textMuted,
